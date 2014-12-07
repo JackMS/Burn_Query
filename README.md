@@ -11,29 +11,53 @@ the first isotope listed above a mass fraction specified and then search for sec
 isotopes specified when that first is found. The canonical example is to search all
 particles for 26Al above E6 abundance and report 28Si,29Si, and 30Si also above E6; 
 which with this program would consist of 
-./burn_qury [files]
+
+./burn_query [files]
+
 1 [add isotope]
+
 13 [nN]
+
 13 [nZ]
+
 6  [10E-n]
+
 1 [add isotope]
+
 14 [nN]
+
 14 [nZ]
+
 6  [10E-n]
+
 1 [add isotope]
+
 15 [nN]
+
 14 [nZ]
+
 6  [10E-n]
+
 1 [add isotope]
+
 16 [nN]
+
 14 [nZ]
+
 6  [10E-n]
+
 4 [run query]
+
 y [to confirm correct query]
+
 file-name [for output file]
+
 ...
+
 ...
+
 ...
+
 Done!
 
 A lot to be done to clean up the process of gathering data (all in one line isotope entries, for one)
