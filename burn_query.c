@@ -6,9 +6,9 @@
 	based on the input you specify on run time. Still has a long way to go at this point. 
 	~ Jack M. Sexton - 2014
 	
-	
-	
-	
+	1/29/2015  
+	COMMENTS!
+	~ JMS
 	
 	Planned Features
 	
@@ -27,7 +27,7 @@
 #include <string.h>
 #include <SE.h>
 
-
+// Linked List Node Object
 struct linked_list
 {
     int n;
@@ -35,9 +35,10 @@ struct linked_list
 	double cutoff;
     struct linked_list *next ;
 } ;
-
+// C doesn't understand linked lists so you have to define it in terms it does
 typedef struct linked_list NODE ;
 
+// Declaring the linked list functions and container variables
 NODE * getnode();
 NODE * insert(NODE *head , int nn_sort, int nz_sort, double fmass_sort);
 NODE * delete(NODE *head);
@@ -46,10 +47,11 @@ int get_nn();
 int get_nz();
 double get_fmass();
 
-
+// The Main Loop - The Actual Program
 int main(int argc, char *argv[])
 {
 
+// Declarations
 	int i, j, k;
 	int sefp, nspecies, nread, printflag, nobj, *nn, *nz, *ids;
 	char buff[50];
@@ -61,12 +63,14 @@ int main(int argc, char *argv[])
 	int input, nn_sort, nz_sort;
 	double fmass_sort, *total_mass, mass, *frac_mass, mtot = 0.0; 
 	
+	// Naked command test
 	if (argc < 2) 
     {
         fprintf(stderr, "Usage: %s HDF5_file [HDF5_file ...]\n", argv[0]);
         exit(-1);
     }
 	
+	// User Interface 
 	while(1)
 	{
 		printf("\n 1. Insert isotope \n");
@@ -77,6 +81,7 @@ int main(int argc, char *argv[])
 		
 		printf("\n Please type the appropriate option: \n\n");
 		
+		// Interface with the User 
 		scanf("%d" , &input);
 		switch(input)
         {
@@ -87,9 +92,11 @@ int main(int argc, char *argv[])
 					printf("\n I.E. 26Al with a mass fraction above 10E_6 would be");
 					printf("\n 13 13 6\n\n");
 					
+					// Fix this Ugly Shit later 
 					nn_sort = get_nn();
 					nz_sort = get_nz();
 					fmass_sort = get_fmass();
+					// Insert the node at the top of the list 
 					head = insert(head , nn_sort, nz_sort, fmass_sort);
 					break;
             
@@ -105,20 +112,25 @@ int main(int argc, char *argv[])
 					nn_sort = get_nn();
 					nz_sort = get_nz();
 					fmass_sort = get_fmass();
+					// Insert the node at the next position of the list 
 					head = insert(head, nn_sort, nz_sort, fmass_sort);
 					break;
 				}
 				
 			case 2:
+				// Deletes the last node, not necesarily the head but including the head 
 				head = delete(head);
 				break;
 				
 			case 3:
+				// Read the List Node by Node and display*/
 				display(head);
 				break;
 				
 			case 4:
+				// Purge the buffer to remove trailing newline from using scanf 
 				fgets(tmp, 50, stdin);
+				// Warn the User before embarking 
 				printf("\nAre you sure this is the query you wish to perform?\n");
 				display(head);
 				printf("\n(Y/y)es to continue (N/n)o to go back\n");
@@ -136,6 +148,7 @@ int main(int argc, char *argv[])
 				}
 				else if (strcmp(buff,"Yes") == 0||strcmp(buff,"yes") == 0||strcmp(buff,"Y") == 0||strcmp(buff,"y") == 0)
 				{
+					// Get the filename
 					printf("\nEnter output filename\n");
 					fgets(buff, sizeof(buff), stdin);
 					if ((pos=strchr(buff, '\n')) != NULL)
@@ -148,22 +161,29 @@ int main(int argc, char *argv[])
 					}
 					else
 					{
+						//Starting the Query
+						//Read the first file
 						sefp = SEopen(argv[1]);
+						//Get the species
 						SEreadIArrayAttr(sefp, -1, "nn", &nn, &nspecies);
 						SEreadIArrayAttr(sefp, -1, "nz", &nz, &nspecies);
+						//Close it for now to keep things tidy
 						SEclose(sefp);
 						printf("%s contains %d species\n", argv[1], nspecies);
 
+						//Build a buffer
 						total_mass = (double *)calloc(nspecies, sizeof(double));
 
-						filevar = fopen(buff,"a"); /* open the output file */
+						// open the output file
+						filevar = fopen(buff,"a"); 
 
-						for (i = 1; i < argc; ++i) /* for each i from 1 to argc */
+						for (i = 1; i < argc; ++i) 
 						{
-							sefp = SEopen(argv[i]); /* open the current file */
+							//Open the current file
+							sefp = SEopen(argv[i]); 
 							printf("%s opened\n",argv[i]);
 
-							/* For each file, determine the list of particles in the file. */
+							// For each file, determine the list of particles in the file.
 							nobj = SEncycles(sefp);
 							ids = (int *)malloc(nobj * sizeof(int));
 							printf("%u bytes Allocated for %i particles\n", nobj * sizeof(int), nobj);
@@ -172,9 +192,11 @@ int main(int argc, char *argv[])
 							
 							for (j = 0; j < nobj; ++j)
 							{
+								//Read the mass attributes for each
 								mass = SEreadDAttr(sefp, ids[j], "mass");
 								SEreadDArrayAttr(sefp, ids[j], "fmass", &frac_mass, &nread);
 								
+								//Look for mismatch
 								if (nread != nspecies)
 								{
 									fprintf(stderr, "%s particle %d: nread (%d) != nspecies (%d)\n", 
@@ -182,13 +204,16 @@ int main(int argc, char *argv[])
 									exit(-1);
 								}
 								
+								//Null out the flag for each particle
 								printflag = 0;
 								
 								
 								for (k = 0; k < nspecies; ++k)
 								{						
+									//Test against the head of the linked list for the isotope we want
 									if ( (nz[k] == head->z) && (nn[k]== head->n) && (frac_mass[k] >= head->cutoff) )
 									{
+										//Flag it for later
 										printflag = 1;
 										printf("particle %d flagged for %d:%d at %g \n", ids[j], nn[k], nz[k], frac_mass[k]);
 										break;
@@ -196,42 +221,55 @@ int main(int argc, char *argv[])
 								}
 								for (k = 0; k < nspecies; ++k)
 								{ 
+									//Count this isotope towards the total mass
 									total_mass[k] += mass * frac_mass[k];
+									//Check that print flag from earlier
 									if(printflag == 1)
 									{
+										//Go to the top of the list
 										curr = head;
+										//For the whole list
 										while (curr != NULL)
 										{
+											//Check sort parameters
 											if((nz[k] == curr->z) && (nn[k] == curr->n) && (frac_mass[k] >= curr->cutoff))
 											{
+												//Output to the file
 												fprintf(filevar, "%d %d %e\n", nz[k], nn[k], frac_mass[k]);
 												printf("%d:%d at %g saved to file\n", nn[k], nz[k], frac_mass[k]);
 											}
+											//Next item on list
 											curr=curr->next;
+											//Unless it's not
 											if(curr == NULL)
 											break;
 										}
 									}
 								}
+							//Tidy Up
 							free(frac_mass);
 							}
+						//Tidy Up
 						free(ids);
 						SEclose(sefp);
 						}
 						fclose(filevar);
+						//Update final totals
 						for (k = 0; k < nspecies; ++k) 
 						{
 							mtot += total_mass[k];
 						}
-
+						//Console Output of Final results
 						for (k = 0; k < nspecies; ++k)
 						{
 							printf("nn = %d\tnz = %d\tmass = %e (%.2f%%)\n", nn[k], nz[k],
 								   total_mass[k], total_mass[k]/mtot * 100.0);
 						}
+						//Tidy Up
 						free(nn);
 						free(nz);
 						free(total_mass);
+						//Don't forget the linked list
 						while (head != NULL)
 						{
 							head=delete(head);
@@ -241,20 +279,23 @@ int main(int argc, char *argv[])
 				}
 				else
 				{
+				//It's dead, spit out the last input so you can diagnose why
 				printf("last input: |%s|", buff);
 				exit(-1);
 				}
 				
 			case 5:
+			`//For the whole list
 				while (head != NULL)
 				{
+					//Remove
 					head=delete(head);
 				}
 				exit(1);
 		}
 	}
 }
-
+//Make a Node
 NODE * getnode()
 {
     NODE *create ;
@@ -263,6 +304,7 @@ NODE * getnode()
     return create;
 }
 
+//Add a node to the list
 NODE *insert(NODE *head ,  int nn_sort, int nz_sort, double fmass_sort)
 {
     NODE *makenode;
@@ -294,6 +336,7 @@ NODE *insert(NODE *head ,  int nn_sort, int nz_sort, double fmass_sort)
 	return head;
 }
 
+//Remove a Node
 NODE * delete(NODE *head)
 {
     if (head == NULL)
@@ -322,6 +365,7 @@ NODE * delete(NODE *head)
     return head;
 }
 
+//Display the List
 void display(NODE *head)
 {
     NODE *q;
@@ -346,6 +390,7 @@ void display(NODE *head)
     }
 }
 
+//Get User Input
 int get_nn()
 {
 	int nn_get;
