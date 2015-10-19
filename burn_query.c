@@ -10,6 +10,12 @@
 	COMMENTS!
 	~ JMS
 	
+	3/18/2015
+	Now polls a SDF file as well and puts the abundance data into it's spatial context.
+	Has the same restrictions as SDF_reader though, as this functionality is inherited.
+	More machine-friendly output styling.
+	~ JMS
+	
 	Planned Features
 	
 	* All of a species sorting - Just specify a proton count and catch all isotopes 
@@ -18,7 +24,8 @@
 	*Unified Query Entry - Enter nz nn frac-mass threshold in one line of input for 
 		faster query construction
 	
-	*Improved Performance - Dog-slow when it works, lots of tweaks to help that though. 
+	*Re-write SDF functionality using Tree16's library
+	
 */
 
 #include <stdio.h>
@@ -26,6 +33,32 @@
 #include <stddef.h>
 #include <string.h>
 #include <SE.h>
+
+//The particle structure from SNSPH, defaulting to jet3b et al's styling
+//WIL NOT WORK WITH CCO_2, without major hand holding for each file anyway
+typedef struct
+{
+    double x, y, z;		/* position of body */
+    float mass;			/* mass of body */
+    float vx, vy, vz;		/* velocity of body */
+    float u;			/* internal energy */
+    float h;			/* smoothing length */
+    float rho;			/* density */
+    float drho_dt;              /* time derivative of rho */
+    float udot;			/* time derivative of u */
+    float ax, ay, az;		/* acceleration */
+    float lax, lay, laz;	/* acceleration at tpos-dt */
+    float phi;			/* potential */
+    float idt;			/* timestep */
+    unsigned int nbrs;          /* number of neighbors */
+    unsigned int ident;		/* unique identifier */
+    unsigned int windid;        /* wind id */
+    float temp;                 /* temperature */
+    float Y_el;                  /* for alignment */
+    float f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,f16,f17,f18,f19,f20,f21,f22; 
+    int p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15,p16,p17,p18,p19,p20,p21,p22; 
+    int m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22; 
+} particle; 
 
 // Linked List Node Object
 struct linked_list
@@ -52,11 +85,13 @@ int main(int argc, char *argv[])
 {
 
 // Declarations
-	int i, j, k;
+	int i, j, k, h, sz, nobj_sdf;
+	int offset=1600;
 	int sefp, nspecies, nread, printflag, nobj, *nn, *nz, *ids;
 	char buff[50];
 	char *pos;
 	char tmp[50];
+	particle part;
 	FILE *filevar;
 	NODE *head = NULL ;
 	NODE *curr = NULL ;
@@ -66,7 +101,7 @@ int main(int argc, char *argv[])
 	// Naked command test
 	if (argc < 2) 
     {
-        fprintf(stderr, "Usage: %s HDF5_file [HDF5_file ...]\n", argv[0]);
+        fprintf(stderr, "Usage: %s SDF_file HDF5_file [HDF5_file ...]\n", argv[0]);
         exit(-1);
     }
 	
@@ -118,7 +153,7 @@ int main(int argc, char *argv[])
 				}
 				
 			case 2:
-				// Deletes the last node, not necesarily the head but including the head 
+				// Deletes the last node, not necessarily the head but including the head 
 				head = delete(head);
 				break;
 				
@@ -162,28 +197,58 @@ int main(int argc, char *argv[])
 					else
 					{
 						//Starting the Query
-						//Read the first file
-						sefp = SEopen(argv[1]);
+						
+						//Read the SDF file
+						FILE *fp = fopen(argv[1], "rb");
+						
+						//Read the first HDF5 file
+						sefp = SEopen(argv[2]);
+						
 						//Get the species
 						SEreadIArrayAttr(sefp, -1, "nn", &nn, &nspecies);
 						SEreadIArrayAttr(sefp, -1, "nz", &nz, &nspecies);
+						
 						//Close it for now to keep things tidy
 						SEclose(sefp);
-						printf("%s contains %d species\n", argv[1], nspecies);
+						printf("%s contains %d species\n", argv[2], nspecies);
 
-						//Build a buffer
+						//Build a buffer for summing the masses
 						total_mass = (double *)calloc(nspecies, sizeof(double));
 
-						// open the output file
+						//Open the output file
 						filevar = fopen(buff,"a"); 
+						
+						//Inspect the SDF for details
+						//Will be replaced later with proper LibSDF calls
+						fseek(fp, 0L, SEEK_END);
+						sz = ftell(fp);
+						nobj_sdf = (sz-offset)/sizeof(particle);
 
-						for (i = 1; i < argc; ++i) 
+						//Write the header of the output file
+						fprintf(filevar, "id, x, y, z, rho");
+						curr = head;
+						while (curr != NULL)
+						{
+							fprint(filevar, ", %d:%d", curr->z, curr->n);
+							curr=curr->next;
+							if(curr == NULL) 
+							{	
+								fprint(filevar, "\n");
+								break;
+							}
+						}
+						
+						//Reset the file-pointer for the SDF file
+						fseek(fp,offset,SEEK_SET);
+						
+						//Iterate through the HDF5 files
+						for (i = 2; i < argc; ++i) 
 						{
 							//Open the current file
 							sefp = SEopen(argv[i]); 
 							printf("%s opened\n",argv[i]);
 
-							// For each file, determine the list of particles in the file.
+							// For each HDF5 file, determine the list of particles in the file
 							nobj = SEncycles(sefp);
 							ids = (int *)malloc(nobj * sizeof(int));
 							printf("%u bytes Allocated for %i particles\n", nobj * sizeof(int), nobj);
@@ -207,7 +272,6 @@ int main(int argc, char *argv[])
 								//Null out the flag for each particle
 								printflag = 0;
 								
-								
 								for (k = 0; k < nspecies; ++k)
 								{						
 									//Test against the head of the linked list for the isotope we want
@@ -226,6 +290,12 @@ int main(int argc, char *argv[])
 									//Check that print flag from earlier
 									if(printflag == 1)
 									{
+										
+										
+										fprintf(filevar, "%d, %g, %g, %g, %g", part.ident, part.x, part.y, part.z, part.rho);
+										
+										
+										
 										//Go to the top of the list
 										curr = head;
 										//For the whole list
