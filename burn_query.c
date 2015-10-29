@@ -283,19 +283,15 @@ int main(int argc, char *argv[])
 										break;
 									}
 								}
+								//Once per object write the particle info if flagged
+								if(printflag == 1) fprintf(filevar, "%d, %g, %g, %g, %g", part.ident, part.x, part.y, part.z, part.rho);
 								for (k = 0; k < nspecies; ++k)
 								{ 
 									//Count this isotope towards the total mass
 									total_mass[k] += mass * frac_mass[k];
-									//Check that print flag from earlier
+									//Check that print flag again
 									if(printflag == 1)
 									{
-										
-										
-										fprintf(filevar, "%d, %g, %g, %g, %g", part.ident, part.x, part.y, part.z, part.rho);
-										
-										
-										
 										//Go to the top of the list
 										curr = head;
 										//For the whole list
@@ -305,14 +301,17 @@ int main(int argc, char *argv[])
 											if((nz[k] == curr->z) && (nn[k] == curr->n) && (frac_mass[k] >= curr->cutoff))
 											{
 												//Output to the file
-												fprintf(filevar, "%d %d %e\n", nz[k], nn[k], frac_mass[k]);
+												fprintf(filevar, ", %e", frac_mass[k]);
 												printf("%d:%d at %g saved to file\n", nn[k], nz[k], frac_mass[k]);
 											}
 											//Next item on list
 											curr=curr->next;
 											//Unless it's not
 											if(curr == NULL)
+											{
+											fprintf(filevar,"/n");
 											break;
+											}
 										}
 									}
 								}
