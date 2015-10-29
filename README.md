@@ -2,7 +2,8 @@ Burn_Query
 ==========
 
 A HDF5 Query Generation Tool designed for use with the Burn package and SNSPH, using 
-USEEPP for interfacing with the HDF5 files. 
+USEEPP for interfacing with the HDF5 files. Now also polls the SDF files from the model run as well
+to give you spatial/density/etc data to go with your abundances. 
 
 Created because I got sick of writing subtly different variations of the same
 code to perform queries for a research project. When run with HDF5 files as 
@@ -12,7 +13,7 @@ isotopes specified when that first is found. The canonical example is to search 
 particles for 26Al above E6 abundance and report 28Si,29Si, and 30Si also above E6; 
 which with this program would consist of 
 
-./burn_query [files]
+./burn_query [model SDF file] [HDF5 files]
 
 1 [add isotope]
 
