@@ -1,0 +1,8 @@
+Rewrite plans:
+Ditch current ghetto interface, replace with ncurses and eventually tkinter
+Flat files containing all options; save last options on success and modify before run to save time.
+Plotting output? < would be nice but might be too expensive, save for when doing tkinter interface as an option?
+	If plotting; options to ouput various optional subplots, ie vector fields etc
+	gnuplot <- how this will get done
+More sort options; all of an isotope family wildcards, lists of primary sorts with no secondaries, etc
+	Flat File config files: will need some sort of options line in the query files to kill ambiguity
